@@ -7,10 +7,12 @@ requires-python = ">=3.10"
 dependencies = [
     "aiohttp>=3.11.15",
     "dotenv>=0.9.9",
+    "langfuse>=2.60.2",
     "loguru>=0.7.3",
     "pydantic-ai[logfire]>=0.0.46",
     "pyperclip>=1.9.0",
     "textual>=3.0.0",
+    "traceloop-sdk>=0.39.0",
 ]
 
 [dependency-groups]

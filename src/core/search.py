@@ -1,5 +1,6 @@
 import asyncio
 import re
+from traceloop.sdk.decorators import workflow, task
 from typing import List
 
 # first-party
@@ -13,7 +14,18 @@ You are a language model, and your job is to write google search queries for the
 2. Then you need to understand and formulate things you could possibly search for on google.
 3. Finally you need to write down search queries. Maximum of 5. Minimum of 2
 
-You should respond in below format:
+
+### Instructions for formulation and writing queries:
+
+1. Make sure to split the user question into atomic google searchable queries.
+  - Meaning: when asked about differences between 2 things, have queries to find more information about those 2 things independently
+  - Example: is knative like aws lambda. Have 2 queries like: 'aws lambda' and 'knative'
+2. Starting from atomic, build up compound queries.
+  - Example: 3rd query could be something like: 'aws lambda vs knative' or 'similarities between aws lambda and knative' 
+
+> Make sure to think about these things in the formulation phase too!
+
+### Response Format:
 
 <reflection>
   [...]
@@ -98,7 +110,7 @@ Your response should be in following format:
 '''.strip()
 
 
-
+@task()
 def parse_query_response(response: str) -> List[str]:
   """
   Parse the response from query generator prompt to extract search queries.
@@ -121,6 +133,7 @@ def parse_query_response(response: str) -> List[str]:
 
 
 class SearchSession:
+  @workflow(name='pro-search')
   async def ask(self, question, model=models.qwen7b_model):
     queries = await self._get_queries(question, model)
     search_results = await self._get_search_results(queries)
@@ -128,16 +141,19 @@ class SearchSession:
     final_answer = await self._get_final_answer(question, pruned_search_results, model)
     return final_answer
 
+  @task()
   async def _get_queries(self, question, model):
     query_gen_chat = chat.ChatSession(QUERY_GENERATOR_PROMPT)
     res = await query_gen_chat.chat(question, model)
     return parse_query_response(res)
 
+  @task()
   async def _get_search_results(self, queries):
-    tasks = [search.search_brave(q) for q in queries]
+    tasks = [search.search_brave(q, count=10) for q in queries]
     search_results: list[list[search.SearchResult]] = await asyncio.gather(*tasks)
     return [x for y in search_results for x in y]
 
+  @task()
   async def _prune_search_results(self, question, search_results, model):
     user_question = f'<user_question>{question}</user_question>'
     tasks = []
@@ -159,6 +175,7 @@ class SearchSession:
     return pruned_results_list
 
 
+  @task()
   async def _get_final_answer(self, question, search_results, model):
     search_results = [self.search_result_to_xml(x, indent=1) for x in search_results]
     context = '<context>\n' + '\n'.join(search_results) + '\n</context>'
@@ -184,36 +201,3 @@ class SearchSession:
       ret.append(f'{TAB*(indent+1)}</extra_snippet>')
     ret.append(f'{TAB*(indent)}</search_result>')
     return '\n'.join(ret)
-
-#
-#
-# how to handle rate limiting with async await? i have rate limit on cs.chat function call
-# You need to add rate limiting to your async calls to prevent too many concurrent requests. Here's a simple solution using a semaphore:
-#
-# ```python
-# import asyncio
-#
-# class SearchSession:
-#   def __init__(self, max_concurrent_requests=3):
-#     self.semaphore = asyncio.Semaphore(max_concurrent_requests)
-#   
-#   async def rate_limited_call(self, func, *args, **kwargs):
-#     async with self.semaphore:
-#       return await func(*args, **kwargs)
-#   
-#   # Then modify your methods to use rate_limited_call
-#   
-#   async def _prune_search_results(self, question, search_results, model):
-#     user_question = f'<user_question>{question}</user_question>'
-#     tasks = []
-#     for res in search_results:
-#       xml_res = self.search_result_to_xml(res)
-#       prompt = f'{xml_res}\n{user_question}'
-#       cs = chat.ChatSession(RESULT_PRUNER_PROMPT)
-#       tasks.append(self.rate_limited_call(cs.chat, prompt, model))
-#     
-#     responses_list = await asyncio.gather(*tasks)
-#     # rest of your code remains the same
-# ```
-#
-# Apply this pattern to all methods that call `cs.chat`. Adjust `max_concurrent_requests` based on your API limits.
