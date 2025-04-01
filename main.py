@@ -81,4 +81,4 @@ async def mock_main():
 
 
 if __name__ == "__main__":
-    asyncio.run(mock_main())
+    asyncio.run(main())
