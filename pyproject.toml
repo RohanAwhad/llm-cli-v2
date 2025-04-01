@@ -1,0 +1,19 @@
+[project]
+name = "mar-30-tui-chat"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.11.15",
+    "dotenv>=0.9.9",
+    "loguru>=0.7.3",
+    "pydantic-ai[logfire]>=0.0.46",
+    "pyperclip>=1.9.0",
+    "textual>=3.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipython>=8.34.0",
+]
