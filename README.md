@@ -15,8 +15,9 @@ Right now it only has a Single Search mechanism.
 
 You can skip logging, and simply run the following:
 ```bash
-# first setup GEMINI_API_KEY
+# first export API KEYS
 export GEMINI_API_KEY="..."
+export BRAVE_SEARCH_AI_API_KEY='...'
 ```
 Then run main
 ```bash
