@@ -53,7 +53,7 @@ class Writer:
 
 def write_to_file(user_input, response):
     if not os.path.exists('tmp.txt'): open('tmp.txt', 'w').close()
-    with open('tmp.txt', 'a') as f: f.write(f'### {user_input}\n\n{response}')
+    with open('tmp.txt', 'a') as f: f.write(f'### {user_input}\n\n{response.strip()}\n\n')
 def write_to_stdout(user_input, response): print(response)
 
 async def main():
@@ -62,11 +62,23 @@ async def main():
     writer.add_sink(write_to_stdout)
 
     ss = search.SearchSession()
-    user_input = input('user> ')
+    user_input = input('user> ').strip()
     # res = await ss.ask(user_input, models.Models.QWEN_7B)
     res = await ss.ask(user_input, models.Models.FLASH)
     writer.write(user_input, res)
 
 
+async def mock_main():
+    writer = Writer()
+    writer.add_sink(write_to_file)
+    writer.add_sink(write_to_stdout)
+
+    user_input = input('user> ')
+    # res = await ss.ask(user_input, models.Models.QWEN_7B)
+    res = 'hello there from ai'
+    writer.write(user_input, res)
+
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(mock_main())
