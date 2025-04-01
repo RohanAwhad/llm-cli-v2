@@ -6,6 +6,7 @@ from typing import List
 # first-party
 from . import chat, models
 from src.tools import search
+from src.utils import rate_limiter
 
 QUERY_GENERATOR_PROMPT = '''
 You are a language model, and your job is to write google search queries for the given user question.
@@ -149,7 +150,8 @@ class SearchSession:
 
   @task()
   async def _get_search_results(self, queries):
-    tasks = [search.search_brave(q, count=10) for q in queries]
+    limiter = rate_limiter.RateLimiter(rate=0.98, capacity=1)
+    tasks = [search.search_brave(q, count=10, rate_limiter=limiter) for q in queries]
     search_results: list[list[search.SearchResult]] = await asyncio.gather(*tasks)
     return [x for y in search_results for x in y]
 

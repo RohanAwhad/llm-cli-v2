@@ -1,3 +1,4 @@
+from typing import Optional
 import aiohttp
 import asyncio
 import os
@@ -34,7 +35,7 @@ class SearchResult:
     )
 
 
-async def search_brave(query: str, count: int = 5) -> list[SearchResult]:
+async def search_brave(query: str, count: int = 5, rate_limiter = None) -> list[SearchResult]:
   """
   Searches the web using Brave Search API and returns structured search results.
 
@@ -66,6 +67,7 @@ async def search_brave(query: str, count: int = 5) -> list[SearchResult]:
   async with aiohttp.ClientSession() as session:
     while retries < max_retries:
       try:
+        if rate_limiter is not None: await rate_limiter.acquire(num_tokens=1)
         async with session.get(url, headers=headers, params=params) as response:
           response.raise_for_status()
           results_json = await response.json()
@@ -73,12 +75,13 @@ async def search_brave(query: str, count: int = 5) -> list[SearchResult]:
           break
       except aiohttp.ClientError as e:
         logger.exception(f"HTTP Request failed: {e}, retrying...")
+
+      finally:
         retries += 1
         if retries < max_retries:
           await asyncio.sleep(backoff_factor ** retries)
         else:
           return []
-
 
 
   results: list[SearchResult] = []
