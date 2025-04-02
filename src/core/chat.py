@@ -12,13 +12,17 @@ Your name is Edith.
     self.message_history = None
     if system_prompt is not None: self.system_prompt = system_prompt
 
-  async def chat(self, message, model=models.Models.QWEN_7B):
+  async def chat(self, message, model=models.Models.QWEN_7B, stream=False):
     agent = self._get_agent(model)
-    if self.message_history is None:
-      result = await agent.run(message)
-    else:
-      result = await agent.run(message, message_history=self.message_history)
+    if stream:
+      async def generate_stream():
+          async with agent.run_stream(message, message_history=self.message_history) as result:
+              async for chunk in result.stream_text(delta=True):
+                  yield chunk  # Yield each chunk of data
+              self.message_history = result.all_messages()
+      return generate_stream()
 
+    result = await agent.run(message, message_history=self.message_history)
     self.message_history = result.all_messages()
     return result.data
 

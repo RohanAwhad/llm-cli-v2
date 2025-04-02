@@ -43,6 +43,12 @@ async def search_brave(query: str, count: int = 5, rate_limiter = None) -> list[
   :param count: The number of search results to return.
   :return: A list of SearchResult objects containing the search results.
   """
+  return [SearchResult(
+    title='Test Title',
+    url='https://example.com',
+    description='This is a test result',
+    extra_snippets=[],
+  )]
   if not query:
     return []
 

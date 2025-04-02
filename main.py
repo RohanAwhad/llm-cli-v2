@@ -70,10 +70,10 @@ async def main():
     writer.add_sink(write_to_file)
     writer.add_sink(write_to_stdout)
 
-    ss = search.SearchSession()
+    ss = search.SearchSession(model=models.Models.FLASH, stream=True)
     user_input = input('user> ').strip()
     # res = await ss.ask(user_input, models.Models.QWEN_7B)
-    res = await ss.ask(user_input, models.Models.FLASH)
+    res = await ss.ask(user_input)
     writer.write(user_input, res)
 
 

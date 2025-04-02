@@ -134,18 +134,22 @@ def parse_query_response(response: str) -> List[str]:
 
 
 class SearchSession:
+  def __init__(self, model=models.Models.QWEN_7B, stream=False):
+    self.model = model
+    self.stream = stream
+
   @workflow(name='pro-search')
-  async def ask(self, question, model=models.qwen7b_model):
-    queries = await self._get_queries(question, model)
+  async def ask(self, question):
+    queries = await self._get_queries(question)
     search_results = await self._get_search_results(queries)
-    pruned_search_results = await self._prune_search_results(question, search_results, model)
-    final_answer = await self._get_final_answer(question, pruned_search_results, model)
+    # pruned_search_results = await self._prune_search_results(question, search_results)
+    final_answer = await self._get_final_answer(question, search_results)
     return final_answer
 
   @task()
-  async def _get_queries(self, question, model):
+  async def _get_queries(self, question):
     query_gen_chat = chat.ChatSession(QUERY_GENERATOR_PROMPT)
-    res = await query_gen_chat.chat(question, model)
+    res = await query_gen_chat.chat(question, self.model)
     return parse_query_response(res)
 
   @task()
@@ -156,14 +160,14 @@ class SearchSession:
     return [x for y in search_results for x in y]
 
   @task()
-  async def _prune_search_results(self, question, search_results, model):
+  async def _prune_search_results(self, question, search_results):
     user_question = f'<user_question>{question}</user_question>'
     tasks = []
     for res in search_results:
       xml_res = self.search_result_to_xml(res)
       prompt = f'{xml_res}\n{user_question}'
       cs = chat.ChatSession(RESULT_PRUNER_PROMPT)
-      tasks.append(cs.chat(prompt, model))
+      tasks.append(cs.chat(prompt, self.model))
 
     responses_list = await asyncio.gather(*tasks)
     pruned_results_list = []
@@ -178,15 +182,19 @@ class SearchSession:
 
 
   @task()
-  async def _get_final_answer(self, question, search_results, model):
+  async def _get_final_answer(self, question, search_results):
     search_results = [self.search_result_to_xml(x, indent=1) for x in search_results]
     context = '<context>\n' + '\n'.join(search_results) + '\n</context>'
     user_question = f'<user_question>{question}</user_question>'
     prompt = context + '\n' + user_question
+
     cs = chat.ChatSession(ANSWER_GENERATOR_PROMPT)
-    response = await cs.chat(prompt, model)
+    if self.stream: return await cs.chat(question, stream=True) # Get the async generator
+
+    response = await cs.chat(prompt, self.model)
     match = re.search(r'<final_answer>(.*?)</final_answer>', response, re.DOTALL)
     if match: return match.group(1).strip()
+
     return None
 
 

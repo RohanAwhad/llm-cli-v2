@@ -412,6 +412,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi"
+version = "0.115.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f4/55/ae499352d82338331ca1e28c7f4a63bfd09479b16395dce38cf50a39e2c2/fastapi-0.115.12.tar.gz", hash = "sha256:1e2c2a2646905f9e83d32f04a3f86aff4a286669c6c950ca95b5fd68c2602681", size = 295236 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/b3/b51f09c2ba432a576fe63758bddc81f78f0c6309d9e5c10d194313bf021e/fastapi-0.115.12-py3-none-any.whl", hash = "sha256:e94613d6c05e27be7ffebdd6ea5f388112e5e430c8f7d6494a9d1d88d43e814d", size = 95164 },
+]
+
+[[package]]
 name = "fastavro"
 version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -920,12 +934,14 @@ source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "dotenv" },
+    { name = "fastapi" },
     { name = "langfuse" },
     { name = "loguru" },
     { name = "pydantic-ai", extra = ["logfire"] },
     { name = "pyperclip" },
     { name = "textual" },
     { name = "traceloop-sdk" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -937,12 +953,14 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.11.15" },
     { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "fastapi", specifier = ">=0.115.12" },
     { name = "langfuse", specifier = ">=2.60.2" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic-ai", extras = ["logfire"], specifier = ">=0.0.46" },
     { name = "pyperclip", specifier = ">=1.9.0" },
     { name = "textual", specifier = ">=3.0.0" },
     { name = "traceloop-sdk", specifier = ">=0.39.0" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
 [package.metadata.requires-dev]
