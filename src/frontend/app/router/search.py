@@ -21,7 +21,7 @@ MODEL_MAPPING = {
 
 class SearchRequest(BaseModel):
     query: str
-    model: Optional[str] = "qwen7b"  # default to flash model
+    model: Optional[str] = "flash"  # default to flash model
 
     class Config:
         schema_extra = {
