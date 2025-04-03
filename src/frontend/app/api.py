@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from src import logger
-load_dotenv('.dev.env')
+load_dotenv('.env')
 logger.setup_logging()
 
 from fastapi import FastAPI
