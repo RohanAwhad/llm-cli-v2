@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional
 
 # first-party
 from src.core import search, models
@@ -36,22 +36,6 @@ class SearchResponse(BaseModel):
     model_used: str
 
 
-@router.post("/stream")
-async def stream_response(request: SearchRequest):
-    from pydantic_ai import Agent
-    reflection_agent = Agent(models.Models.FLASH, system_prompt='You are a language model and your job is to reflect on the given user message', instrument=True)
-
-    # Define an async generator for streaming data
-    async def generate_stream(query: str):
-        async with reflection_agent.run_stream(query) as result:
-            async for chunk in result.stream_text(delta=True):
-                yield chunk  # Yield each chunk of data
-
-    return StreamingResponse(generate_stream(request.query), media_type="text/event-stream")
-
-
-
-
 @router.post("/search")
 async def perform_search(request: SearchRequest):
     try:
@@ -66,20 +50,15 @@ async def perform_search(request: SearchRequest):
         model = MODEL_MAPPING[model_key]
 
         # Initialize search session
-        ss = search.SearchSession(model=model, stream=True)
+        ss = search.SearchSession(model=model)
         
         # Perform search
-        result = await ss.ask(request.query)
-        return StreamingResponse(result, media_type="text/event-stream")
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="No results found")
-            
-        return SearchResponse(
-            result=result,
-            model_used=request.model
-        )
-        
+        coros = ss.ask_stream(request.query)
+        async def generate_stream():
+            async for chunk in coros:
+                yield chunk
+
+        return StreamingResponse(generate_stream(), media_type="text/event-stream")
     except HTTPException:
         raise
     except Exception as e:

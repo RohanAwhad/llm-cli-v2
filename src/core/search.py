@@ -1,5 +1,6 @@
 import asyncio
 import re
+from opentelemetry import trace
 from traceloop.sdk.decorators import workflow, task
 from typing import List
 
@@ -134,17 +135,33 @@ def parse_query_response(response: str) -> List[str]:
 
 
 class SearchSession:
-  def __init__(self, model=models.Models.QWEN_7B, stream=False):
+  def __init__(self, model=models.Models.QWEN_7B):
     self.model = model
-    self.stream = stream
 
   @workflow(name='pro-search')
   async def ask(self, question):
     queries = await self._get_queries(question)
     search_results = await self._get_search_results(queries)
-    # pruned_search_results = await self._prune_search_results(question, search_results)
-    final_answer = await self._get_final_answer(question, search_results)
+    pruned_search_results = await self._prune_search_results(question, search_results)
+    final_answer = await self._get_final_answer(question, pruned_search_results, stream=False)
     return final_answer
+
+  @workflow(name='pro-search')
+  async def ask_stream(self, question):
+    queries = await self._get_queries(question)
+    search_results = await self._get_search_results(queries)
+    pruned_search_results = await self._prune_search_results(question, search_results)
+    final_answer = await self._get_final_answer(question, pruned_search_results, stream=True)
+
+    complete_response = []
+    async with final_answer as result:
+      async for chunk in result.stream_text(delta=True):
+        complete_response.append(chunk)
+        yield chunk
+
+    full = ''.join(complete_response)
+    current_span = trace.get_current_span()
+    current_span.set_attribute("traceloop.entity.output", full)
 
   @task()
   async def _get_queries(self, question):
@@ -182,15 +199,14 @@ class SearchSession:
 
 
   @task()
-  async def _get_final_answer(self, question, search_results):
+  async def _get_final_answer(self, question, search_results, stream):
     search_results = [self.search_result_to_xml(x, indent=1) for x in search_results]
     context = '<context>\n' + '\n'.join(search_results) + '\n</context>'
     user_question = f'<user_question>{question}</user_question>'
     prompt = context + '\n' + user_question
 
     cs = chat.ChatSession(ANSWER_GENERATOR_PROMPT)
-    if self.stream: return await cs.chat(question, stream=True) # Get the async generator
-
+    if stream: return await cs.stream_chat(prompt, self.model) # Get the async generator
     response = await cs.chat(prompt, self.model)
     match = re.search(r'<final_answer>(.*?)</final_answer>', response, re.DOTALL)
     if match: return match.group(1).strip()
