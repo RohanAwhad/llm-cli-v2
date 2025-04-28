@@ -4,12 +4,12 @@
 import os
 import base64
 
+from src import config
+
 def setup_logging():
     try:
         # Langfuse credentials
-        LANGFUSE_PUBLIC_KEY = os.environ['LANGFUSE_PUBLIC_KEY']
-        LANGFUSE_SECRET_KEY = os.environ['LANGFUSE_SECRET_KEY']
-        LANGFUSE_AUTH = base64.b64encode(f"{LANGFUSE_PUBLIC_KEY}:{LANGFUSE_SECRET_KEY}".encode()).decode()
+        LANGFUSE_AUTH = base64.b64encode(f"{config.settings.LANGFUSE_PUBLIC_KEY}:{config.settings.LANGFUSE_SECRET_KEY}".encode()).decode()
 
         # OpenTelemetry endpoints
         os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:3000/api/public/otel"
@@ -25,9 +25,6 @@ def setup_logging():
         # Sets the global default tracer provider
         from opentelemetry import trace
         trace.set_tracer_provider(trace_provider)
-
-        # Creates a tracer from the global tracer provider
-        tracer = trace.get_tracer(__name__)
 
         # OpenLLMetry
         from traceloop.sdk import Traceloop

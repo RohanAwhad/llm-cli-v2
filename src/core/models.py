@@ -1,6 +1,10 @@
 import os
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.gemini import GeminiModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.google_gla import GoogleGLAProvider
+
+from src import config
 
 
 qwen7b_model = OpenAIModel(
@@ -15,11 +19,18 @@ qwen72b_model = OpenAIModel(
   )
 )
 
+flash_model = GeminiModel(
+  model_name='gemini-2.0-flash',
+  provider=GoogleGLAProvider(
+    api_key=config.settings.GEMINI_API_KEY
+  )
+)
+
 class Models:
   QWEN_7B = qwen7b_model
   QWEN_72B = qwen72b_model
   DS_V3 = 'deepseek:deepseek-chat'
-  FLASH = 'google-gla:gemini-2.0-flash'
+  FLASH = flash_model
   GEMINI = ''
   SONNET = 'anthropic:claude-3-5-sonnet-latest'
   GPT_4O = 'openai:gpt-4o'

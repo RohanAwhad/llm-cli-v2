@@ -1,10 +1,11 @@
-from typing import Optional
 import aiohttp
 import asyncio
 import os
 
 from dataclasses import dataclass
 from loguru import logger
+
+from src import config
 
 @dataclass
 class SearchResult:
@@ -49,7 +50,7 @@ async def search_brave(query: str, count: int = 5, rate_limiter = None) -> list[
   url: str = "https://api.search.brave.com/res/v1/web/search"
   headers: dict = {
       "Accept": "application/json",
-      "X-Subscription-Token": os.environ.get('BRAVE_SEARCH_AI_API_KEY', '')
+      "X-Subscription-Token": config.settings.BRAVE_SEARCH_AI_API_KEY
   }
   if not headers['X-Subscription-Token']:
     logger.error("Error: Missing Brave Search API key.")
